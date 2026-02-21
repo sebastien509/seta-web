@@ -1,5 +1,5 @@
 // src/pages/Home.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button, Card, ThemeToggle } from "../components";
@@ -17,7 +17,6 @@ import {
   ClipboardDocumentCheckIcon,
   ChartBarIcon,
   GlobeAltIcon,
-  BoltIcon,
   ArrowTopRightOnSquareIcon,
   CheckBadgeIcon,
   ReceiptPercentIcon,
@@ -188,19 +187,6 @@ const Divider = () => (
   </div>
 );
 
-const Stat = ({ icon: Icon, label, value, sub }) => (
-  <div className="flex items-start gap-3">
-    <span className="mt-0.5 inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white">
-      <Icon className="h-5 w-5 text-blue-600" />
-    </span>
-    <div>
-      <div className="text-sm font-semibold text-slate-700">{label}</div>
-      <div className="mt-1 text-xl font-extrabold text-slate-900">{value}</div>
-      {sub ? <div className="mt-1 text-sm text-slate-600">{sub}</div> : null}
-    </div>
-  </div>
-);
-
 const ProofBadge = ({ icon: Icon, title, copy }) => (
   <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white/70 p-4 shadow-sm">
     <Icon className="h-5 w-5 text-blue-600 mt-0.5" />
@@ -233,8 +219,18 @@ const modalBackdrop = {
 
 const modalPanel = {
   hidden: { opacity: 0, y: 10, scale: 0.98 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.22, ease: "easeOut" } },
-  exit: { opacity: 0, y: 8, scale: 0.985, transition: { duration: 0.18, ease: "easeIn" } },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.22, ease: "easeOut" },
+  },
+  exit: {
+    opacity: 0,
+    y: 8,
+    scale: 0.985,
+    transition: { duration: 0.18, ease: "easeIn" },
+  },
 };
 
 function WalletUnavailableModal({ open, onClose, onRequestPilot }) {
@@ -251,7 +247,14 @@ function WalletUnavailableModal({ open, onClose, onRequestPilot }) {
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          // FIX #2: mobile safe-area + prevent top cut + allow scroll if tall
+          className={[
+            "fixed inset-0 z-[100] flex justify-center",
+            "items-start sm:items-center",
+            "px-4 sm:px-6",
+            "pt-[calc(env(safe-area-inset-top)+16px)]",
+            "pb-[calc(env(safe-area-inset-bottom)+16px)]",
+          ].join(" ")}
           initial="hidden"
           animate="show"
           exit="exit"
@@ -267,7 +270,13 @@ function WalletUnavailableModal({ open, onClose, onRequestPilot }) {
           {/* Panel */}
           <motion.div
             variants={modalPanel}
-            className="relative w-full max-w-lg rounded-3xl border border-slate-200 bg-white shadow-[0_24px_80px_rgba(15,23,42,0.18)] overflow-hidden"
+            className={[
+              "relative w-full max-w-lg rounded-3xl border border-slate-200 bg-white",
+              "shadow-[0_24px_80px_rgba(15,23,42,0.18)] overflow-hidden",
+              // viewport-safe height on mobile
+              "max-h-[calc(100dvh-32px-env(safe-area-inset-top)-env(safe-area-inset-bottom))]",
+              "overflow-y-auto",
+            ].join(" ")}
             role="dialog"
             aria-modal="true"
             aria-label="Wallet not available"
@@ -315,7 +324,9 @@ function WalletUnavailableModal({ open, onClose, onRequestPilot }) {
                   <div className="flex items-start gap-3">
                     <RocketLaunchIcon className="h-5 w-5 text-blue-700 mt-0.5" />
                     <div>
-                      <div className="text-sm font-bold text-slate-900">Pilot-ready path</div>
+                      <div className="text-sm font-bold text-slate-900">
+                        Pilot-ready path
+                      </div>
                       <div className="mt-1 text-sm text-slate-600 leading-relaxed">
                         Start with one corridor and one platform workflow. We validate payout reliability, receipts, and reconciliation packs.
                       </div>
@@ -373,14 +384,14 @@ export default function Home() {
 
   const [showDownload, setShowDownload] = useState(false);
   const [videoOk, setVideoOk] = useState(true);
-
-  // New: availability modal (all outbound actions show this)
   const [showWalletUnavailable, setShowWalletUnavailable] = useState(false);
+
+  const videoRef = useRef(null);
 
   const mobile = useMemo(() => isMobileUA(), []);
   const standalone = useMemo(() => isStandalonePWA(), []);
 
-  // Reduced motion: avoid autoplay background video
+  // Reduced motion: avoid autoplay background video (desktop)
   const [reduceMotion, setReduceMotion] = useState(false);
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -390,6 +401,31 @@ export default function Home() {
     mq?.addEventListener?.("change", update);
     return () => mq?.removeEventListener?.("change", update);
   }, []);
+
+  // FIX #1: Ensure background video always attempts to play on mobile.
+  useEffect(() => {
+    if (!mobile) return;
+    const v = videoRef.current;
+    if (!v) return;
+
+    // iOS/Safari: must be muted + playsInline. We also try play() repeatedly on visibility changes.
+    const tryPlay = async () => {
+      try {
+        await v.play();
+      } catch {
+        // ignore — Safari may block until it decides it can autoplay; we retry on events below
+      }
+    };
+
+    tryPlay();
+
+    const onVis = () => {
+      if (document.visibilityState === "visible") tryPlay();
+    };
+
+    window.addEventListener("visibilitychange", onVis);
+    return () => window.removeEventListener("visibilitychange", onVis);
+  }, [mobile]);
 
   // Show app prompt only once on mobile (never in PWA)
   useEffect(() => {
@@ -402,31 +438,23 @@ export default function Home() {
       setShowDownload(true);
     }
   }, [mobile, standalone]);
-  const handleOpenWallet = () => {
-    if (standalone) return goWallet();
-    if (mobile) return setShowDownload(true);
-    return goWallet();
-  };
 
-  const handleTalkToUs = () => navigate("/settings"); // swap later for /contact or /partners
-
-
-  // New: Intercept all routes/actions that would leave Home.
-  // We intentionally keep UX inside Home until wiring is complete.
+  // Intercept all routes/actions that would leave Home.
   const interceptOutbound = () => setShowWalletUnavailable(true);
 
-  // If you want a "pilot request" action, keep it internal too:
+  // Keep pilot request internal
   const handleRequestPilot = () => {
     setShowWalletUnavailable(false);
-    // Keep inside Home — scroll to CTA/FAQ section
     document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  const scrollTo = (id) =>
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+
+  const handleTalkToUs = () => interceptOutbound(); // keep inside Home for now
 
   return (
     <div className="min-h-screen bg-white text-slate-900 relative overflow-hidden">
-      {/* Availability modal */}
       <WalletUnavailableModal
         open={showWalletUnavailable}
         onClose={() => setShowWalletUnavailable(false)}
@@ -436,9 +464,12 @@ export default function Home() {
       {/* BACKGROUND */}
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50 to-white" />
-        {videoOk && !reduceMotion ? (
+
+        {/* Video: on mobile, render even if prefers-reduced-motion is enabled */}
+        {videoOk && (!reduceMotion || mobile) ? (
           <video
-            className="absolute inset-0 w-full object-cover opacity-[0.10]"
+            ref={videoRef}
+            className="absolute inset-0 w-full h-full object-cover opacity-[0.10]"
             autoPlay
             muted
             loop
@@ -446,10 +477,16 @@ export default function Home() {
             preload="auto"
             crossOrigin="anonymous"
             onError={() => setVideoOk(false)}
+            onCanPlay={() => {
+              if (!mobile) return;
+              const v = videoRef.current;
+              if (v) v.play().catch(() => {});
+            }}
           >
             <source src={BG_VIDEO} type="video/mp4" />
           </video>
         ) : null}
+
         <div className="absolute inset-0 bg-white/72" />
         <SoftGlow />
       </div>
@@ -459,7 +496,10 @@ export default function Home() {
       {/* NAVBAR */}
       <div className="sticky top-0 z-50 border-b border-slate-200 bg-white/70 backdrop-blur">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="flex items-center gap-3">
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="flex items-center gap-3"
+          >
             <img
               src={LOGO_ICON}
               alt="SETA"
@@ -474,7 +514,9 @@ export default function Home() {
                   Settlement Infrastructure
                 </span>
               </div>
-              <div className="text-xs text-slate-600">Collect • Settle • Payout • Proof</div>
+              <div className="text-xs text-slate-600">
+                Collect • Settle • Payout • Proof
+              </div>
             </div>
           </button>
 
@@ -488,13 +530,10 @@ export default function Home() {
 
           <div className="flex items-center gap-2">
             <ThemeToggle className="hidden sm:inline-flex" />
-
-            {/* All outbound actions now open modal */}
             <CTAButton onClick={interceptOutbound} label="Get started" />
-
             <Button
               variant="secondary"
-              onClick={interceptOutbound}
+              onClick={handleTalkToUs}
               className="hidden sm:inline-flex bg-white text-blue-700 border border-blue-200 hover:bg-blue-50"
             >
               Talk to us
@@ -505,7 +544,6 @@ export default function Home() {
                 onClose={() => setShowDownload(false)}
                 onContinueWeb={() => {
                   setShowDownload(false);
-                  // Keeping inside Home until wiring is complete
                   interceptOutbound();
                 }}
               />
@@ -515,10 +553,14 @@ export default function Home() {
       </div>
 
       {/* HERO */}
-      <motion.section initial="hidden" animate="show" variants={stagger} className="relative z-[2]">
+      <motion.section
+        initial="hidden"
+        animate="show"
+        variants={stagger}
+        className="relative z-[2]"
+      >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-14 sm:pt-16 pb-10 sm:pb-14">
           <div className="grid lg:grid-cols-12 gap-10 items-center">
-            {/* Left: Copy */}
             <div className="lg:col-span-7">
               <motion.div variants={fadeUp} className="flex items-center gap-4">
                 <img
@@ -547,7 +589,10 @@ export default function Home() {
                 </span>
               </motion.h1>
 
-              <motion.div variants={fadeUp} className="mt-6 flex flex-col sm:flex-row gap-3">
+              <motion.div
+                variants={fadeUp}
+                className="mt-6 flex flex-col sm:flex-row gap-3"
+              >
                 <CTAButton onClick={interceptOutbound} label="Start in the wallet" />
                 <Button
                   variant="secondary"
@@ -576,7 +621,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Trust strip */}
           <motion.div variants={fadeUp} className="mt-20">
             <div className="grid sm:grid-cols-3 gap-4">
               <ProofBadge
@@ -749,38 +793,6 @@ export default function Home() {
             copy="Multi-party payouts with fee policy and audit-ready records."
           />
         </motion.div>
-
-        <motion.div variants={fadeUp} className="mt-10">
-          <GlassCard className="p-8">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-              <div className="max-w-2xl">
-                <div className="text-sm font-semibold text-slate-500">MENA fit</div>
-                <div className="mt-1 text-xl font-extrabold text-slate-900">
-                  Cross-border complexity is the default. SETA makes it operationally simple.
-                </div>
-                <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-                  Standardized receipts, predictable policy, and partner controls make settlement trustworthy at scale.
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button
-                  variant="secondary"
-                  onClick={handleTalkToUs}
-                  className="bg-white text-blue-700 border border-blue-200 hover:bg-blue-50"
-                >
-                  Discuss a pilot
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => scrollTo("trust")}
-                  className="text-slate-700 hover:bg-slate-100"
-                >
-                  Trust and controls
-                </Button>
-              </div>
-            </div>
-          </GlassCard>
-        </motion.div>
       </motion.section>
 
       {/* TRUST */}
@@ -794,7 +806,9 @@ export default function Home() {
       >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16">
           <motion.div variants={fadeUp} className="max-w-3xl">
-            <div className="text-xs font-semibold tracking-wider text-blue-700/80">TRUST</div>
+            <div className="text-xs font-semibold tracking-wider text-blue-700/80">
+              TRUST
+            </div>
             <h2 className="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
               Proof is built into the rail.
             </h2>
@@ -881,7 +895,6 @@ export default function Home() {
           />
         </motion.div>
 
-        {/* Closing CTA band */}
         <motion.div variants={fadeUp} className="mt-10">
           <GlassCard className="p-8">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
