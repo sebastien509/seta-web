@@ -333,7 +333,7 @@ function WalletUnavailableModal({ open, onClose, onRequestPilot }) {
               </div>
 
               <div className="mt-5 text-xs text-slate-500">
-                Note: Wallet UI and routes will be enabled after wiring is complete. This prompt prevents dead-ends.
+                Note: Wallet and API routes will be enabled after wiring is complete.
               </div>
             </div>
 
