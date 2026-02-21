@@ -456,14 +456,14 @@ export default function Home() {
             />
             <div className="leading-tight text-left">
               <div className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-                SETA MENA
+                SETA Network
                 <span className="hidden sm:inline-flex items-center gap-1 rounded-full border border-blue-100 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
                   <GlobeAltIcon className="h-3.5 w-3.5" />
                   Settlement Infrastructure
                 </span>
               </div>
               <div className="text-xs text-slate-600">
-                Collect • Settle • Payout • Proof
+              Collect • Settle • Payout • On-chain
               </div>
             </div>
           </button>
@@ -548,16 +548,16 @@ export default function Home() {
                 <motion.div variants={fadeUp} className="flex items-center gap-4">
                   <img
                     src={LOGO_BIG}
-                    alt="SETA MENA"
+                    alt="SETA Network"
                     className="w-14 h-14 sm:w-16 sm:h-16 object-contain drop-shadow-[0_18px_50px_rgba(37,99,235,0.18)]"
                     draggable={false}
                   />
                   <div className="min-w-0">
                     <div className="text-xs font-semibold tracking-wider text-blue-700/80">
-                      PAYMENTS SETTLEMENT FOR PLATFORMS
+                    ON-CHAIN DSU SETTLEMENT FOR PLATFORMS
                     </div>
                     <div className="text-sm text-slate-600">
-                      Built for cross-border operations, partner controls, and audit-grade proof.
+                    Built on-chain as a DSU for settlement, with partner controls and audit-grade proof.
                     </div>
                   </div>
                 </motion.div>
@@ -609,7 +609,7 @@ export default function Home() {
                 <ProofBadge
                   icon={BuildingLibraryIcon}
                   title="Partner-led deployment"
-                  copy="Designed to work with regulated partners and operational controls."
+                  copy="An on-chain DSU designed to work with regulated partners and operational controls."
                 />
                 <ProofBadge
                   icon={ReceiptPercentIcon}
@@ -641,7 +641,7 @@ export default function Home() {
         <SectionTitle
           kicker="CAPABILITIES"
           title="Everything a platform needs to settle, pay out, and prove."
-          subtitle="A clean API surface for product teams, and controls/visibility for finance and compliance."
+          subtitle="A clean API surface on top of an on-chain DSU, with controls and visibility for finance and compliance."
         />
 
         <motion.div variants={stagger} className="mt-10 grid lg:grid-cols-3 gap-6">
@@ -918,10 +918,9 @@ export default function Home() {
                 draggable={false}
               />
               <div>
-                <div className="text-sm font-extrabold text-slate-900">SETA MENA</div>
+                <div className="text-sm font-extrabold text-slate-900">SETA Network</div>
                 <div className="text-sm text-slate-600 mt-1 max-w-xl">
-                  Settlement infrastructure for platforms — programmable payouts with audit-grade receipts.
-                </div>
+                On-chain DSU settlement infrastructure for platforms — programmable payouts with audit-grade receipts.                </div>
               </div>
             </div>
 
@@ -941,7 +940,7 @@ export default function Home() {
           <div className="mt-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <img
               src={LOGO_BIG}
-              alt="SETA MENA"
+              alt="SETA Network"
               className="w-[240px] h-auto object-contain opacity-95 drop-shadow-[0_22px_70px_rgba(37,99,235,0.16)]"
               draggable={false}
               loading="lazy"
