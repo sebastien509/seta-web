@@ -18,7 +18,6 @@ import {
   ChartBarIcon,
   GlobeAltIcon,
   ArrowTopRightOnSquareIcon,
-  CheckBadgeIcon,
   ReceiptPercentIcon,
   DevicePhoneMobileIcon,
   UsersIcon,
@@ -30,7 +29,7 @@ import {
   ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 
-// Background (kept very light)
+// Background (top hero only)
 const BG_VIDEO =
   "https://res.cloudinary.com/dyeomcmin/video/upload/v1769920336/113367-697718066_small_u2chbh.mp4";
 
@@ -64,7 +63,7 @@ const stagger = {
   show: { transition: { staggerChildren: 0.08 } },
 };
 
-/* ----------------------------- Bright Brand UI ----------------------------- */
+/* ----------------------------- UI ----------------------------- */
 
 const SoftGlow = () => (
   <div className="absolute inset-0 pointer-events-none">
@@ -76,7 +75,6 @@ const SoftGlow = () => (
 
 const FloatingLogos = () => (
   <div className="absolute inset-0 pointer-events-none z-[1]">
-    {/* Large watermark */}
     <img
       src={LOGO_BIG}
       alt="SETA watermark"
@@ -85,7 +83,6 @@ const FloatingLogos = () => (
       draggable={false}
       loading="lazy"
     />
-    {/* Small icon accent */}
     <img
       src={LOGO_ICON}
       alt="SETA icon accent"
@@ -219,26 +216,14 @@ const modalBackdrop = {
 
 const modalPanel = {
   hidden: { opacity: 0, y: 10, scale: 0.98 },
-  show: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: 0.22, ease: "easeOut" },
-  },
-  exit: {
-    opacity: 0,
-    y: 8,
-    scale: 0.985,
-    transition: { duration: 0.18, ease: "easeIn" },
-  },
+  show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.22, ease: "easeOut" } },
+  exit: { opacity: 0, y: 8, scale: 0.985, transition: { duration: 0.18, ease: "easeIn" } },
 };
 
 function WalletUnavailableModal({ open, onClose, onRequestPilot }) {
   useEffect(() => {
     if (!open) return;
-    const onKey = (e) => {
-      if (e.key === "Escape") onClose();
-    };
+    const onKey = (e) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
@@ -247,7 +232,6 @@ function WalletUnavailableModal({ open, onClose, onRequestPilot }) {
     <AnimatePresence>
       {open ? (
         <motion.div
-          // FIX #2: mobile safe-area + prevent top cut + allow scroll if tall
           className={[
             "fixed inset-0 z-[100] flex justify-center",
             "items-start sm:items-center",
@@ -260,20 +244,17 @@ function WalletUnavailableModal({ open, onClose, onRequestPilot }) {
           exit="exit"
           variants={modalBackdrop}
         >
-          {/* Backdrop */}
           <button
             aria-label="Close"
             onClick={onClose}
             className="absolute inset-0 bg-slate-900/30 backdrop-blur-[2px]"
           />
 
-          {/* Panel */}
           <motion.div
             variants={modalPanel}
             className={[
               "relative w-full max-w-lg rounded-3xl border border-slate-200 bg-white",
               "shadow-[0_24px_80px_rgba(15,23,42,0.18)] overflow-hidden",
-              // viewport-safe height on mobile
               "max-h-[calc(100dvh-32px-env(safe-area-inset-top)-env(safe-area-inset-bottom))]",
               "overflow-y-auto",
             ].join(" ")}
@@ -391,7 +372,7 @@ export default function Home() {
   const mobile = useMemo(() => isMobileUA(), []);
   const standalone = useMemo(() => isStandalonePWA(), []);
 
-  // Reduced motion: avoid autoplay background video (desktop)
+  // Reduced motion: avoid autoplay background video (desktop) — but allow on mobile
   const [reduceMotion, setReduceMotion] = useState(false);
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -402,18 +383,17 @@ export default function Home() {
     return () => mq?.removeEventListener?.("change", update);
   }, []);
 
-  // FIX #1: Ensure background video always attempts to play on mobile.
+  // Ensure mobile video attempts to play
   useEffect(() => {
     if (!mobile) return;
     const v = videoRef.current;
     if (!v) return;
 
-    // iOS/Safari: must be muted + playsInline. We also try play() repeatedly on visibility changes.
     const tryPlay = async () => {
       try {
         await v.play();
       } catch {
-        // ignore — Safari may block until it decides it can autoplay; we retry on events below
+        // ignore — Safari may block; we'll retry on visibility change
       }
     };
 
@@ -451,7 +431,7 @@ export default function Home() {
   const scrollTo = (id) =>
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
-  const handleTalkToUs = () => interceptOutbound(); // keep inside Home for now
+  const handleTalkToUs = () => interceptOutbound();
 
   return (
     <div className="min-h-screen bg-white text-slate-900 relative overflow-hidden">
@@ -460,38 +440,6 @@ export default function Home() {
         onClose={() => setShowWalletUnavailable(false)}
         onRequestPilot={handleRequestPilot}
       />
-
-      {/* BACKGROUND */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50 to-white" />
-
-        {/* Video: on mobile, render even if prefers-reduced-motion is enabled */}
-        {videoOk && (!reduceMotion || mobile) ? (
-          <video
-            ref={videoRef}
-            className="absolute inset-0 w-full h-full object-cover opacity-[0.10]"
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="auto"
-            crossOrigin="anonymous"
-            onError={() => setVideoOk(false)}
-            onCanPlay={() => {
-              if (!mobile) return;
-              const v = videoRef.current;
-              if (v) v.play().catch(() => {});
-            }}
-          >
-            <source src={BG_VIDEO} type="video/mp4" />
-          </video>
-        ) : null}
-
-        <div className="absolute inset-0 bg-white/72" />
-        <SoftGlow />
-      </div>
-
-      <FloatingLogos />
 
       {/* NAVBAR */}
       <div className="sticky top-0 z-50 border-b border-slate-200 bg-white/70 backdrop-blur">
@@ -552,96 +500,132 @@ export default function Home() {
         </div>
       </div>
 
-      {/* HERO */}
-      <motion.section
-        initial="hidden"
-        animate="show"
-        variants={stagger}
-        className="relative z-[2]"
-      >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-14 sm:pt-16 pb-10 sm:pb-14">
-          <div className="grid lg:grid-cols-12 gap-10 items-center">
-            <div className="lg:col-span-7">
-              <motion.div variants={fadeUp} className="flex items-center gap-4">
-                <img
-                  src={LOGO_BIG}
-                  alt="SETA MENA"
-                  className="w-14 h-14 sm:w-16 sm:h-16 object-contain drop-shadow-[0_18px_50px_rgba(37,99,235,0.18)]"
-                  draggable={false}
-                />
-                <div className="min-w-0">
-                  <div className="text-xs font-semibold tracking-wider text-blue-700/80">
-                    PAYMENTS SETTLEMENT FOR PLATFORMS
-                  </div>
-                  <div className="text-sm text-slate-600">
-                    Built for cross-border operations, partner controls, and audit-grade proof.
-                  </div>
-                </div>
-              </motion.div>
+      {/* HERO WRAPPER (video should only live here) */}
+      <div className="relative z-[1]">
+        {/* TOP HERO BACKGROUND ONLY */}
+        <div className="absolute inset-x-0 top-0 h-[760px] sm:h-[820px] pointer-events-none z-0 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-white via-slate-50 to-white" />
 
-              <motion.h1
-                variants={fadeUp}
-                className="mt-20 sm:mt-12 text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900"
-              >
-                The settlement layer that makes MENA payouts reliable —
-                <span className="block bg-gradient-to-r from-blue-700 via-sky-600 to-cyan-500 bg-clip-text text-transparent">
-                  across banks, wallets, and countries.
-                </span>
-              </motion.h1>
+          {videoOk && (!reduceMotion || mobile) ? (
+            <video
+              ref={videoRef}
+              className="absolute inset-0 w-full h-full object-cover opacity-[0.10]"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              crossOrigin="anonymous"
+              onError={() => setVideoOk(false)}
+              onCanPlay={() => {
+                if (!mobile) return;
+                const v = videoRef.current;
+                if (v) v.play().catch(() => {});
+              }}
+            >
+              <source src={BG_VIDEO} type="video/mp4" />
+            </video>
+          ) : null}
 
-              <motion.div
-                variants={fadeUp}
-                className="mt-6 flex flex-col sm:flex-row gap-3"
-              >
-                <CTAButton onClick={interceptOutbound} label="Start in the wallet" />
-                <Button
-                  variant="secondary"
-                  onClick={() => scrollTo("capabilities")}
-                  className="bg-white text-blue-700 border border-blue-200 hover:bg-blue-50"
-                >
-                  Explore capabilities
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={interceptOutbound}
-                  className="text-slate-700 hover:bg-slate-100"
-                >
-                  Request a pilot
-                </Button>
-              </motion.div>
+          <div className="absolute inset-0 bg-white/72" />
+          <SoftGlow />
+          <FloatingLogos />
 
-              <motion.div variants={fadeUp} className="mt-6 flex flex-wrap gap-2">
-                <Pill icon={CreditCardIcon}>Payment collection</Pill>
-                <Pill icon={ArrowsRightLeftIcon}>Settlement routing</Pill>
-                <Pill icon={BanknotesIcon}>Programmable payouts</Pill>
-                <Pill icon={ReceiptPercentIcon}>Predictable fee bands</Pill>
-                <Pill icon={ClipboardDocumentCheckIcon}>Receipts and proof</Pill>
-                <Pill icon={ShieldCheckIcon}>Controls and limits</Pill>
-              </motion.div>
-            </div>
-          </div>
-
-          <motion.div variants={fadeUp} className="mt-20">
-            <div className="grid sm:grid-cols-3 gap-4">
-              <ProofBadge
-                icon={BuildingLibraryIcon}
-                title="Partner-led deployment"
-                copy="Designed to work with regulated partners and operational controls."
-              />
-              <ProofBadge
-                icon={ReceiptPercentIcon}
-                title="Predictable pricing"
-                copy="Fee bands and policies that enable planning, reporting, and CFO confidence."
-              />
-              <ProofBadge
-                icon={LockClosedIcon}
-                title="Security posture"
-                copy="Control points for limits, holds, and audit exports across the payout lifecycle."
-              />
-            </div>
-          </motion.div>
+          {/* Fade out to normal white page */}
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-white" />
         </div>
-      </motion.section>
+
+        {/* HERO CONTENT */}
+        <motion.section
+          initial="hidden"
+          animate="show"
+          variants={stagger}
+          className="relative z-[2]"
+        >
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-14 sm:pt-16 pb-10 sm:pb-14">
+            <div className="grid lg:grid-cols-12 gap-10 items-center">
+              <div className="lg:col-span-7">
+                <motion.div variants={fadeUp} className="flex items-center gap-4">
+                  <img
+                    src={LOGO_BIG}
+                    alt="SETA MENA"
+                    className="w-14 h-14 sm:w-16 sm:h-16 object-contain drop-shadow-[0_18px_50px_rgba(37,99,235,0.18)]"
+                    draggable={false}
+                  />
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold tracking-wider text-blue-700/80">
+                      PAYMENTS SETTLEMENT FOR PLATFORMS
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      Built for cross-border operations, partner controls, and audit-grade proof.
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.h1
+                  variants={fadeUp}
+                  className="mt-20 sm:mt-12 text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900"
+                >
+                  The settlement layer that makes MENA payouts reliable —
+                  <span className="block bg-gradient-to-r from-blue-700 via-sky-600 to-cyan-500 bg-clip-text text-transparent">
+                    across banks, wallets, and countries.
+                  </span>
+                </motion.h1>
+
+                <motion.div
+                  variants={fadeUp}
+                  className="mt-6 flex flex-col sm:flex-row gap-3"
+                >
+                  <CTAButton onClick={interceptOutbound} label="Start in the wallet" />
+                  <Button
+                    variant="secondary"
+                    onClick={() => scrollTo("capabilities")}
+                    className="bg-white text-blue-700 border border-blue-200 hover:bg-blue-50"
+                  >
+                    Explore capabilities
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={interceptOutbound}
+                    className="text-slate-700 hover:bg-slate-100"
+                  >
+                    Request a pilot
+                  </Button>
+                </motion.div>
+
+                <motion.div variants={fadeUp} className="mt-6 flex flex-wrap gap-2">
+                  <Pill icon={CreditCardIcon}>Payment collection</Pill>
+                  <Pill icon={ArrowsRightLeftIcon}>Settlement routing</Pill>
+                  <Pill icon={BanknotesIcon}>Programmable payouts</Pill>
+                  <Pill icon={ReceiptPercentIcon}>Predictable fee bands</Pill>
+                  <Pill icon={ClipboardDocumentCheckIcon}>Receipts and proof</Pill>
+                  <Pill icon={ShieldCheckIcon}>Controls and limits</Pill>
+                </motion.div>
+              </div>
+            </div>
+
+            <motion.div variants={fadeUp} className="mt-20">
+              <div className="grid sm:grid-cols-3 gap-4">
+                <ProofBadge
+                  icon={BuildingLibraryIcon}
+                  title="Partner-led deployment"
+                  copy="Designed to work with regulated partners and operational controls."
+                />
+                <ProofBadge
+                  icon={ReceiptPercentIcon}
+                  title="Predictable pricing"
+                  copy="Fee bands and policies that enable planning, reporting, and CFO confidence."
+                />
+                <ProofBadge
+                  icon={LockClosedIcon}
+                  title="Security posture"
+                  copy="Control points for limits, holds, and audit exports across the payout lifecycle."
+                />
+              </div>
+            </motion.div>
+          </div>
+        </motion.section>
+      </div>
 
       <Divider />
 
