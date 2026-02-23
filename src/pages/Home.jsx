@@ -564,11 +564,11 @@ export default function Home() {
 
                 <motion.h1
                   variants={fadeUp}
-                  className="mt-20 sm:mt-12 text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900"
+                  className="mt-20 sm:mt-12 text-2xl sm:text-4xl font-extrabold tracking-tight text-slate-900"
                 >
                   The settlement layer that makes MENA payouts reliable —
                   <span className="block bg-gradient-to-r from-blue-700 via-sky-600 to-cyan-500 bg-clip-text text-transparent">
-                    across banks, wallets, and countries.
+                    across Enterprises, wallets, and countries.
                   </span>
                 </motion.h1>
 
