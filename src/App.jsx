@@ -17,7 +17,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import NetworkStatus from "./components/NetworkStatus";
-
+import ReceiptDetails from "./pages/ReceiptDetails";
 // Optional warmup hooks (safe even if they no-op)
 import { useGas } from "./hooks/useGas";
 import { useTransactions } from "./hooks/useTransactions";
@@ -83,6 +83,14 @@ function AppRoutes() {
           element={
             <AppShell>
               <Transactions />
+            </AppShell>
+          }
+        />
+        <Route
+          path="/receipts/:id"
+          element={
+            <AppShell>
+              <ReceiptDetails />
             </AppShell>
           }
         />
